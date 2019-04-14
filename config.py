@@ -22,5 +22,5 @@ class Config:
 
         # train parameters
         self.num_epoch = 30
-        self.batch_size = 8
+        self.batch_size = 4
         self.val_rate = 0.1
