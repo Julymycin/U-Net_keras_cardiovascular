@@ -2,7 +2,7 @@ import tensorflow as tf
 import keras
 
 from keras.layers import Input, Conv2D, MaxPooling2D, Dropout, BatchNormalization, Conv2DTranspose, concatenate, \
-    Activation
+    Activation, UpSampling2D, Cropping2D, Reshape, Permute
 from keras.regularizers import l2
 from keras.models import Model
 from keras.optimizers import Adam
@@ -115,5 +115,88 @@ def upp_model(img_rows, img_cols, nb_channel, nb_class, deep_supervision=False):
     return model
 
 
+def get_crop_shape(target, refer):
+    # width, the 3rd dimension
+    print([target.get_shape()[0].value, target.get_shape()[1].value, target.get_shape()[2].value,
+           target.get_shape()[3].value])
+    print([refer.get_shape()[0].value, refer.get_shape()[1].value, refer.get_shape()[2].value,
+           refer.get_shape()[3].value])
+    cw = (target.get_shape()[2] - refer.get_shape()[2]).value
+    assert (cw >= 0)
+    if cw % 2 != 0:
+        cw1, cw2 = int(cw / 2), int(cw / 2) + 1
+    else:
+        cw1, cw2 = int(cw / 2), int(cw / 2)
+    # height, the 2nd dimension
+    ch = (target.get_shape()[1] - refer.get_shape()[1]).value
+    assert (ch >= 0)
+    if ch % 2 != 0:
+        ch1, ch2 = int(ch / 2), int(ch / 2) + 1
+    else:
+        ch1, ch2 = int(ch / 2), int(ch / 2)
+
+    return (ch1, ch2), (cw1, cw2)
+
+
+def unet4_model(img_rows, img_cols, nb_channel, nb_class):
+    inputs = Input(shape=(img_rows, img_cols, nb_channel))
+    concat_axis = -1
+    k = 64
+    # Block 1
+    conv1 = Conv2D(k, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(inputs)
+    conv1 = Conv2D(k, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(conv1)
+    pool1 = MaxPooling2D((2, 2), strides=(2, 2), name='block1_pool')(conv1)
+
+    # Block 2
+    conv2 = Conv2D(k * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(pool1)
+    conv2 = Conv2D(k * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(conv2)
+    pool2 = MaxPooling2D((2, 2), strides=(2, 2), name='block2_pool')(conv2)
+
+    # Block 3
+    conv3 = Conv2D(k * 2 * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(pool2)
+    conv3 = Conv2D(k * 2 * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(conv3)
+    pool3 = MaxPooling2D((2, 2), strides=(2, 2), name='block3_pool')(conv3)
+
+    # Block 4
+    conv4 = Conv2D(k * 2 * 2 * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(pool3)
+    conv4 = Conv2D(k * 2 * 2 * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(conv4)
+
+    # Block 5
+    up_conv4 = UpSampling2D(size=(2, 2), data_format="channels_last")(conv4)
+    ch, cw = get_crop_shape(conv3, up_conv4)
+    crop_conv3 = Cropping2D(cropping=(ch, cw), data_format="channels_last")(conv3)
+    up5 = concatenate([up_conv4, crop_conv3], axis=concat_axis)
+    conv5 = Conv2D(k * 2 * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(up5)
+    conv5 = Conv2D(k * 2 * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(conv5)
+
+    # Block 6
+    up_conv5 = UpSampling2D(size=(2, 2), data_format="channels_last")(conv5)
+    ch, cw = get_crop_shape(conv2, up_conv5)
+    crop_conv2 = Cropping2D(cropping=(ch, cw), data_format="channels_last")(conv2)
+    up6 = concatenate([up_conv5, crop_conv2], axis=concat_axis)
+    conv6 = Conv2D(k * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(up6)
+    conv6 = Conv2D(k * 2, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(conv6)
+
+    # Block 7
+    up_conv6 = UpSampling2D(size=(2, 2), data_format="channels_last")(conv6)
+    ch, cw = get_crop_shape(conv1, up_conv6)
+    crop_conv1 = Cropping2D(cropping=(ch, cw), data_format="channels_last")(conv1)
+    up7 = concatenate([up_conv6, crop_conv1], axis=concat_axis)
+    conv7 = Conv2D(k, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(up7)
+    conv7 = Conv2D(k, (3, 3), activation='relu', padding='same', kernel_initializer='he_normal')(conv7)
+    conv8 = Conv2D(nb_class, (1, 1), activation='softmax', padding='same', kernel_initializer='he_normal')(conv7)
+
+    # reshape = Reshape((nb_class, img_cols * img_rows), input_shape=(nb_class, img_cols, img_rows))(conv8)
+    # reshape = Permute((2, 1))(reshape)
+    # activation = Activation('softmax')(reshape)
+
+    model = Model(inputs=inputs, outputs=conv8)
+    model.compile(optimizer=Adam(lr=1.0e-4), loss='categorical_crossentropy', metrics=['accuracy'])
+    model.summary()
+
+    return model
+
+
 if __name__ == '__main__':
-    model = upp_model(256, 256, 3, 2, True)
+    # model = upp_model(256, 256, 3, 2, True)
+    model = unet4_model(480, 480, 3, 5)

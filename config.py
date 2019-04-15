@@ -16,7 +16,7 @@ class Config:
         # data parameters
         self.img_h = 480
         self.img_w = 480
-        self.num_cls = 3
+        self.num_cls = 5
         self.num_chl = 3
         self.scale_list = np.arange(self.num_cls)
 
