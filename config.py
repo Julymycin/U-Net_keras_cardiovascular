@@ -21,6 +21,6 @@ class Config:
         self.scale_list = np.arange(self.num_cls)
 
         # train parameters
-        self.num_epoch = 30
-        self.batch_size = 4
+        self.num_epoch = 50
+        self.batch_size = 2
         self.val_rate = 0.1

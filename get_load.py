@@ -38,9 +38,8 @@ def get_data(images_path, labels_path, img_h, img_w, nb_class, nb_channel, scale
                 start_x = 0 + k * stride_w
                 end_x = start_x + img_w
                 total_images[idx, :, :, :] = image[start_y:end_y, start_x:end_x]
-                label = label[start_y:end_y, start_x:end_x]
                 for cls in range(nb_class):
-                    total_labels[idx, :, :, cls] = (label == scale_list[cls]) * 1
+                    total_labels[idx, :, :, cls] = (label[start_y:end_y, start_x:end_x] == scale_list[cls]) * 1
     #  mean normalization
     if mode == 'train':
         print('loading train images')

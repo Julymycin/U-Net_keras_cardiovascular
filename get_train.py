@@ -20,22 +20,22 @@ if os.path.isdir(config.model_path):
 else:
     os.mkdir(config.model_path)
 
-model = get_model.upp_model(config.img_h, config.img_w, config.num_chl, config.num_cls)
-model_checkpoint = ModelCheckpoint(config.model_path + '/uppnet.hdf5', monitor='loss', save_best_only=False,
+model = get_model.upp_model(config.img_h, config.img_w, config.num_chl, config.num_cls, deep_supervision=False)
+model_checkpoint = ModelCheckpoint(config.model_path + '/uppnet.hdf5', monitor='loss', save_best_only=True,
                                    save_weights_only=False, verbose=1)
 hist = model.fit(x=train_x, y=train_y, batch_size=config.batch_size, epochs=config.num_epoch, verbose=1, shuffle=True,
                  validation_split=float(config.val_rate), callbacks=[model_checkpoint], initial_epoch=0)
 
-plt.plot(hist.hist['acc'])
-plt.plot(hist.hist['val_acc'])
+plt.plot(hist.history['acc'])
+plt.plot(hist.history['val_acc'])
 plt.title('model accuracy')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper left')
 plt.show()
 # summarize hist for loss
-plt.plot(hist.hist['loss'])
-plt.plot(hist.hist['val_loss'])
+plt.plot(hist.history['loss'])
+plt.plot(hist.history['val_loss'])
 plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
