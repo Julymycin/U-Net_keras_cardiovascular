@@ -1,15 +1,18 @@
 import os
 import numpy as np
 import cv2
+import config as c
 
 
 def get_data(images_path, labels_path, img_h, img_w, nb_class, nb_channel, scale_list, mode='train'):
-    print('-' * 10 + 'loading data')
+    print('loading data')
     assert (nb_class >= 2)
     images = os.listdir(images_path)
     images.sort()
+    print(images)
     labels = os.listdir(labels_path)
     labels.sort()
+    print(labels)
     shape = []
     for i in range(len(images)):
         image = cv2.imread(os.path.join(images_path, images[i]))
@@ -36,8 +39,8 @@ def get_data(images_path, labels_path, img_h, img_w, nb_class, nb_channel, scale
                 end_x = start_x + img_w
                 total_images[idx, :, :, :] = image[start_y:end_y, start_x:end_x]
                 label = label[start_y:end_y, start_x:end_x]
-                for c in range(nb_class):
-                    total_labels[idx, :, :, c] = (label == scale_list) * 1
+                for cls in range(nb_class):
+                    total_labels[idx, :, :, cls] = (label == scale_list[cls]) * 1
     #  mean normalization
     if mode == 'train':
         print('loading train images')
@@ -49,3 +52,9 @@ def get_data(images_path, labels_path, img_h, img_w, nb_class, nb_channel, scale
     total_images = (total_images - mean) / (np.max(total_images) - np.min(total_images))
 
     return total_images, total_labels
+
+
+if __name__ == '__main__':
+    config = c.Config()
+    x, y = get_data(config.train_images_path, config.train_labels_path, config.img_h, config.img_w,
+                    config.num_cls, config.num_chl, config.scale_list)
