@@ -35,6 +35,7 @@ def get_data(images_path, labels_path, img_h, img_w, nb_class, nb_channel, scale
                 start_x = 0 + k * stride_w
                 end_x = start_x + img_w
                 total_images[idx, :, :, :] = image[start_y:end_y, start_x:end_x]
+                label = label[start_y:end_y, start_x:end_x]
                 for c in range(nb_class):
                     total_labels[idx, :, :, c] = (label == scale_list) * 1
     # mean normalization
