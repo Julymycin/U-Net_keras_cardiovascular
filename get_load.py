@@ -2,6 +2,7 @@ import os
 import numpy as np
 import cv2
 import config as c
+import random
 
 
 def get_data(images_path, labels_path, img_h, img_w, nb_class, nb_channel, scale_list, mode='train'):
@@ -49,6 +50,17 @@ def get_data(images_path, labels_path, img_h, img_w, nb_class, nb_channel, scale
         print('loading test images')
         mean = np.load('get_load_train_image_mean.npy')
     total_images = (total_images - mean) / (np.max(total_images) - np.min(total_images))
+
+    if mode == 'train':
+        imgs = np.copy(total_images)
+        lbls = np.copy(total_labels)
+        sidx = np.arange(len(images))
+        random.shuffle(sidx)
+        for i in range(len(images)):
+            imgs[i, :, :, :] = total_images[sidx[i], :, :, :]
+            lbls[i, :, :, :] = total_labels[sidx[i], :, :, :]
+        total_images = imgs
+        total_labels = lbls
 
     return total_images, total_labels
 
